@@ -1,0 +1,179 @@
+﻿@using LibraryApplication.Models
+@model IEnumerable<Transaction>
+
+
+@{
+    ViewBag.Title = "Выдача/Сдача книг";
+}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+<style>
+    table {
+        border-collapse: collapse;
+    }
+
+    th, td {
+        border: 1px solid black;
+        padding: 8px;
+    }
+
+    .editable-content {
+        border: 1px solid #ccc;
+        padding: 5px;
+        max-width: 600px;
+        min-width: 600px;
+        max-height: 100px;
+        min-height: 100px;
+        overflow: auto;
+    }
+</style>
+
+<h1>Записи и оформление возврата книг</h1>
+<table class="styled-table"  id="myTable">
+
+    <tr>
+        <th>Id транзакции</th>
+        <th>Фамилия</th>
+        <th>Название книги</th>
+        <th>Статус</th>
+    </tr>
+    @foreach (var transaction in Model)
+    {
+        <tr>
+            <td>@transaction.transactionID</td>
+            <td>@transaction.client.secondName</td>
+            <td>@transaction.book.title</td>
+            <td>
+                    @if (transaction.state.stateID == 2)
+                    {
+                    @transaction.state.stateName
+                    }
+                    else
+                    { 
+                        <select class="custom-select" id="stateSelect">
+                            @foreach(var state in ViewBag.State)
+                            {
+                                <option value="@state.stateID">@state.stateName</option>
+                            }
+                        </select>
+                    }
+
+            </td>
+        </tr>
+    }
+</table>
+<button id="updateStates">Отметить сдачу книги</button>
+<h1>Выдача книги</h1>
+<form id="newRecordForm">
+    <label for="clientSelect">
+        Фамилия клиента:
+        <select id="clientSelect">
+            <option value=0>Выберите клиента...</option>
+            @foreach (var client in ViewBag.Clients)
+            {
+                <option value="@client.clientID">@client.secondName</option>
+            }
+        </select>
+    </label><br>
+
+    <label for="bookSelect">
+        Название книги:
+        <select id="bookSelect">
+            <option value=0>Выберите книгу...</option>
+            @foreach(var book in ViewBag.Books)
+            {
+                <option value="@book.bookID">@book.title</option>
+            }
+        </select>
+    </label><br>
+</form>
+<button id="addNewTransaction">Добавить запись о в выдаче книги</button>
+
+<script>
+    var addNewTransactionUrl = '@Url.Action("AddNewTransaction", "Transaction")';
+    var updateStateUrl = '@Url.Action("UpdateTransactionState", "Transaction")';
+    $(document).ready(function () {
+
+        var changedRows = [];
+
+        $('.custom-select').on('change', function () {
+            var row = $(this).closest('tr');
+
+            changedRows.push(row);
+            console.log(changedRows);
+            window.changedRows = changedRows;
+        });
+
+        function AddNewTransaction() {
+            var clientId = document.getElementById('clientSelect').value;
+            var bookId = document.getElementById('bookSelect').value;
+            if (clientId != 0 && bookId != 0) {
+                $.ajax({
+                    url: addNewTransactionUrl,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ clientID: clientId, bookID: bookId })
+                });
+                document.getElementById('newRecordForm').reset();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Успех!',
+                    text: 'Операция успешно выполнена.',
+                }).then((result) => {
+                    location.reload();
+                });
+            }
+            else {
+                document.getElementById('newRecordForm').reset();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ошибка!',
+                    text: 'Не все данные выбраны',
+                });
+            }
+        }
+
+        $('#addNewTransaction').on('click', function () {
+            AddNewTransaction();
+        });
+
+        function ChangeTransactionsStates() {
+            var changedRows = window.changedRows;
+            if (changedRows != null) {
+                changedRows.forEach(function (row) {
+                    var transID = parseInt(row.find('td:first').text().trim());
+                    $.ajax({
+                        url: updateStateUrl,
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ transactionID: transID })
+                    });
+                });
+
+                document.getElementById('newRecordForm').reset();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Успех!',
+                    text: 'Операция успешно выполнена.',
+                }).then((result) => {
+                    location.reload();
+                });
+            }
+            else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ошибка!',
+                    text: 'Сохранение не произошло.',
+                }).then((result) => {
+                    location.reload();
+                });
+            }
+            window.changedRows = null;
+        }
+        $('#updateStates').on('click', function () {
+            ChangeTransactionsStates();
+        });
+    });
+</script>
+
+

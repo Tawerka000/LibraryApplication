@@ -1,0 +1,144 @@
+﻿@using LibraryApplication.Models
+@model IEnumerable<Book>
+
+@{
+    ViewBag.Title = "Список книг";
+}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+<style>
+    table {
+        border-collapse: collapse;
+    }
+
+    th, td {
+        border: 1px solid black;
+        padding: 8px;
+    }
+
+    .editable-content {
+        border: 1px solid #ccc;
+        padding: 5px;
+        max-width: 600px;
+        min-width: 600px;
+        max-height: 100px;
+        min-height: 100px;
+        overflow: auto;
+    }
+</style>
+
+<h1>Все книги</h1>
+<table class="styled-table">
+
+    <tr>
+        <th>Id книги</th>
+        <th>Название</th>
+        <th>Описание</th>
+    </tr>
+    @foreach (var book in Model)
+    {
+        <tr>
+            <td>@book.bookID</td>
+            <td>@book.title</td>
+            <td width="600">
+                <div class="editable-content" contenteditable="true">
+                    @book.description
+                </div>
+            </td>
+        </tr>
+    }
+</table>
+
+<button id="saveButton">Сохранить обновлённые данные</button>
+<h1>Добавление новой книги</h1>
+<form id="newRecordForm">
+    <label for="newTitle">Название книги:</label><br>
+    <input id="newTitle"><br><br>
+
+    <label for="newDesc">Описание:</label><br>
+    <textarea id="newDesc"></textarea><br><br>
+</form>
+<button id="addBookButton">Добавить запись</button>
+
+<script>
+    var updateDescUrl = '@Url.Action("UpdateDescription", "Book")';
+    var addNewBookUrl = '@Url.Action("AddNewBook", "Book")';
+
+    $(document).ready(function () {
+        var changedRows = [];
+
+        $('.editable-content').on('blur', function () {
+            var row = $(this).closest('tr');
+            if (!changedRows.includes(row)) {
+                changedRows.push(row);
+            }
+            window.changedRows = changedRows;
+        });
+
+        function addNewBook() {
+            var newBookTitle = document.getElementById('newTitle').value;
+            var newBookDesc = document.getElementById('newDesc').value;
+            if (newBookTitle.trim() != '' && newBookDesc.trim() != '') {
+                $.ajax({
+                    url: addNewBookUrl,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ title: newBookTitle, description: newBookDesc })
+                });
+                document.getElementById('newRecordForm').reset();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Успех!',
+                    text: 'Операция успешно выполнена.',
+                }).then((result) => {
+                    location.reload();
+                });
+            }
+            else {
+                document.getElementById('newRecordForm').reset();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ошибка!',
+                    text: 'Не все данные введены',
+                });
+            }
+        }
+        $('#addBookButton').on('click', function () {
+            addNewBook();
+        });
+
+        function saveNewDescriptions() {
+            var changedRows = window.changedRows;
+            if (changedRows != null) {
+                changedRows.forEach(function (row) {
+                    var bookID = row.find('td:first').text();
+                    var description = row.find('.editable-content').text();
+                    $.ajax({
+                        url: updateDescUrl,
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ id: parseInt(bookID), description: String(description) })
+                    });
+                });
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Успех!',
+                    text: 'Данные обновлены.',
+                });
+            }
+            else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ошибка!',
+                    text: 'Сохранять нечего.',
+                });
+            }
+            window.changedRows = null;
+        }
+
+        $('#saveButton').on('click', function () {
+            saveNewDescriptions();
+        });
+    });
+</script>
+

@@ -1,0 +1,97 @@
+﻿@using LibraryApplication.Models
+@model IEnumerable<Client>
+
+@{
+    ViewBag.Title = "Список клиентов";
+}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+<style>
+    table {
+        border-collapse: collapse;
+    }
+
+    th, td {
+        border: 1px solid black;
+        padding: 8px;
+    }
+
+    .editable-content {
+        border: 1px solid #ccc;
+        padding: 5px;
+        max-width: 600px;
+        min-width: 600px;
+        max-height: 100px;
+        min-height: 100px;
+        overflow: auto;
+    }
+</style>
+
+<h1>Клиенты</h1>
+<table class="styled-table">
+
+    <tr>
+        <th>Id клиента</th>
+        <th>Фамилия</th>
+        <th>Имя</th>
+    </tr>
+    @foreach (var client in Model)
+    {
+        <tr>
+            <td>@client.clientID</td>
+            <td>@client.secondName</td>
+            <td>@client.name</td>
+        </tr>
+    }
+</table>
+
+<h1>Добавление нового клиента</h1>
+<form id="newRecordForm">
+    <label for="newSecondName">Фамилия клиента:</label><br>
+    <input id="newSecondName"><br><br>
+
+    <label for="newName">Имя клиента:</label><br>
+    <input id="newName"><br><br>
+</form>
+<button id="addClientButton">Добавить клиента</button>
+
+<script>
+    var addNewClientUrl = '@Url.Action("AddNewClient", "Client")';
+
+    $(document).ready(function () {
+
+        function addNewClient() {
+            var newClientSecondName = document.getElementById('newSecondName').value;
+            var newClientName = document.getElementById('newName').value;
+            if (newClientName.trim() != '' && newClientSecondName.trim() != '') {
+                $.ajax({
+                    url: addNewClientUrl,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ secondname: newClientSecondName, name: newClientName })
+                });
+                document.getElementById('newRecordForm').reset();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Успех!',
+                    text: 'Операция успешно выполнена.',
+                }).then((result) => {
+                    location.reload();
+                });
+            }
+            else {
+                document.getElementById('newRecordForm').reset();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ошибка!',
+                    text: 'Не все данные введены',
+                });
+            }
+        }
+        $('#addClientButton').on('click', function () {
+            addNewClient();
+        });
+    });
+</script>
+
+
